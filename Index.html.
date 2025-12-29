@@ -1,0 +1,212 @@
+<!DOCTYPE html>
+<html lang="pt">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Little Ruby: O Jardim da Alma</title>
+    <style>
+        :root {
+            --ruby-roxa: #714691;
+            --ruby-magenta: #ff00ff;
+            --ruby-rosada: #ff69b4;
+            --ruby-verde: #556b2f;
+            --ruby-vivida: #e91e63;
+            --ruby-semente: #8b4513; /* DEFINI A COR DA SEMENTE */
+        }
+
+        body { 
+            font-family: 'Georgia', serif; background: #ffffff; color: #333;
+            margin: 0; display: flex; flex-direction: column; align-items: center; 
+            min-height: 100vh; overflow-x: hidden;
+        }
+
+        #splash {
+            position: fixed; top:0; left:0; width:100%; height:100%;
+            background: white; z-index: 2000; display: flex; flex-direction: column;
+            justify-content: center; align-items: center; transition: 1s;
+        }
+
+        #app { width: 100%; max-width: 450px; text-align: center; padding: 20px; box-sizing: border-box; }
+
+        #eco-display { height: 50px; font-style: italic; color: var(--ruby-roxa); margin: 15px 0; font-weight: bold; }
+
+        #svg-ruby { width: 100%; height: 350px; }
+        
+        .folha { 
+            transition: 1s; 
+            opacity: 0; 
+            fill: var(--ruby-verde); /* COR INICIAL DAS FOLHAS */
+            transform-origin: center bottom; 
+        }
+        
+        .caule { 
+            stroke: #4a2a1a; 
+            stroke-width: 3; 
+            fill: none; 
+            transition: 1.5s; 
+            /* AJUSTE PARA A ANIMAÇÃO DE CRESCIMENTO */
+            stroke-dasharray: 200; 
+            stroke-dashoffset: 200; 
+        }
+
+        .status-box { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin: 10px 0; font-size: 0.8rem; }
+        .bar { height: 8px; background: #eee; border-radius: 4px; overflow: hidden; margin-top: 4px; }
+        #energy-fill { height: 100%; background: #f1c40f; width: 0%; transition: 0.3s; }
+        #fatigue-fill { height: 100%; background: #e74c3c; width: 0%; transition: 0.3s; }
+
+        .controles { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 20px; }
+        button { padding: 18px; border-radius: 20px; border: 1px solid #ddd; background: white; font-weight: bold; cursor: pointer; transition: 0.2s; }
+        button:active { transform: scale(0.95); }
+
+        #galeria { width: 100%; margin-top: 40px; border-top: 1px solid #eee; padding-top: 20px; padding-bottom: 50px; }
+        .album { display: grid; grid-template-columns: repeat(2, 1fr); gap: 10px; }
+        .foto-card { background: #fff; border: 1px solid #eee; padding: 5px; border-radius: 12px; }
+        .foto-card img { width: 100%; height: 100px; object-fit: cover; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<div id="splash">
+    <div style="width:50px; height:80px; background:var(--ruby-roxa); border-radius:50% 50% 10% 10%; margin-bottom:20px;"></div>
+    <h1 style="color:var(--ruby-roxa)">LITTLE RUBY GARDEN</h1>
+    <p>A preparar a arte...</p>
+</div>
+
+<div id="app">
+    <div id="eco-display">Plante para começar...</div>
+
+    <div class="status-box">
+        <div>Energia: <div class="bar"><div id="energy-fill"></div></div></div>
+        <div>Fadiga: <div class="bar"><div id="fatigue-fill"></div></div></div>
+    </div>
+
+    <svg id="svg-ruby" viewBox="0 0 200 200">
+        <path id="c-main" class="caule" d="M100,190 L100,60" />
+        <path id="c-dir" class="caule" d="M100,140 L140,110" />
+        <path id="c-esq" class="caule" d="M100,120 L60,90" />
+        
+        <path id="f1" class="folha" d="M100,60 Q115,30 100,10 Q85,30 100,60" />
+        <path id="f2" class="folha" d="M140,110 Q170,100 180,80 Q150,80 140,110" />
+        <path id="f3" class="folha" d="M60,90 Q30,80 20,60 Q50,60 70,90" />
+    </svg>
+
+    <div style="width:80px; height:20px; background:#3e2723; margin:-10px auto 20px; border-radius:0 0 10px 10px;"></div>
+
+    <div class="controles">
+        <button id="btn-plantar" onclick="plantar()" style="grid-column: span 2; background:var(--ruby-semente); color:white;">🌱 PLANTAR SEMENTE</button>
+        <button onclick="darLuz()" style="background:#fffbe6">☀️ LUZ SOLAR</button>
+        <button onclick="ouvir()" style="background:#fdf2f8">🎤 CONVERSAR</button>
+        <button onclick="document.getElementById('file').click()" style="grid-column: span 2; background:#e0f2fe">📸 FOTO REAL (BÓNUS)</button>
+        <input type="file" id="file" hidden accept="image/*" onchange="salvarFoto(event)">
+    </div>
+
+    <div id="galeria">
+        <h3>Memórias da Little Ruby</h3>
+        <div class="album" id="album"></div>
+    </div>
+</div>
+
+<script>
+    let energia = 0; let fadiga = 0;
+    let frases = JSON.parse(localStorage.getItem('frasesRuby')) || [];
+    let viva = false;
+
+    // Splash Screen: Desaparece após 2 segundos
+    window.onload = () => {
+        setTimeout(() => {
+            document.getElementById('splash').style.opacity = '0';
+            setTimeout(() => document.getElementById('splash').style.display = 'none', 1000);
+        }, 2000);
+    };
+
+    function plantar() {
+        viva = true;
+        document.getElementById('btn-plantar').style.display = 'none';
+        document.getElementById('eco-display').innerText = "Plantada! Precisa de luz para brotar.";
+        atualizar();
+    }
+
+    function darLuz() {
+        if(!viva) return;
+        energia = Math.min(energia + 10, 100);
+        fadiga = Math.min(fadiga + 5, 100);
+        atualizar();
+    }
+
+    function ouvir() {
+        if(!viva) return;
+        
+        // Verificação para navegadores que não suportam voz
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognition) {
+            alert("O seu navegador não suporta reconhecimento de voz.");
+            return;
+        }
+
+        const rec = new SpeechRecognition();
+        rec.lang = 'pt-BR'; 
+        rec.start();
+        document.getElementById('eco-display').innerText = "A ouvir o teu coração...";
+
+        rec.onresult = (e) => {
+            const fala = e.results[0][0].transcript;
+            frases.push(fala); 
+            localStorage.setItem('frasesRuby', JSON.stringify(frases));
+            energia = Math.min(energia + 15, 100);
+            
+            if (fala.length < 10) reagir('var(--ruby-magenta)', "Magenta: Alegria!");
+            else if (fala.includes("ha")) reagir('var(--ruby-rosada)', "Rosa: Risadas!");
+            else reagir('var(--ruby-roxa)', "Roxo: Canto profundo!");
+            
+            setTimeout(lancarEco, 4000);
+        };
+    }
+
+    function salvarFoto(e) {
+        const reader = new FileReader();
+        reader.onload = (ev) => {
+            const card = `<div class="foto-card"><img src="${ev.target.result}"><br><small>Bónus +50!</small></div>`;
+            document.getElementById('album').innerHTML += card;
+            energia = Math.min(energia + 50, 100);
+            atualizar();
+        };
+        reader.readAsDataURL(e.target.files[0]);
+    }
+
+    function atualizar() {
+        // Atualiza as barras visuais
+        document.getElementById('energy-fill').style.width = energia + "%";
+        document.getElementById('fatigue-fill').style.width = fadiga + "%";
+        
+        // Lógica de crescimento baseada na energia
+        if (energia > 10) {
+            document.getElementById('c-main').style.strokeDashoffset = "0";
+            document.getElementById('eco-display').innerText = "A brotar...";
+        }
+        if (energia > 50) {
+            document.getElementById('c-dir').style.strokeDashoffset = "0";
+            document.getElementById('c-esq').style.strokeDashoffset = "0";
+            document.querySelectorAll('.folha').forEach(f => f.style.opacity = "1");
+            document.getElementById('eco-display').innerText = "As folhas estão a aparecer!";
+        }
+        
+        if (fadiga > 80) {
+            document.getElementById('eco-display').innerText = "Cansada... Precisa de descanso.";
+        }
+    }
+
+    function reagir(cor, msg) {
+        document.getElementById('eco-display').innerText = msg;
+        document.querySelectorAll('.folha').forEach(f => f.style.fill = cor);
+        atualizar();
+    }
+
+    function lancarEco() {
+        if(frases.length > 0) {
+            const msg = frases[Math.floor(Math.random() * frases.length)];
+            document.getElementById('eco-display').innerText = "Eco: " + msg;
+        }
+    }
+</script>
+</body>
+</html>
